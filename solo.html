@@ -1,0 +1,533 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>PathFinder AI — Single Algorithm</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#050810;--s1:#0c1120;--s2:#111827;--s3:#1a2235;
+      --border:#1e3050;--border2:#243655;
+      --text:#e2e8f0;--muted:#4a6080;
+      --mono:'JetBrains Mono',monospace;--display:'Syne',sans-serif;
+      --bfs:#34d399;--dfs:#fb923c;--dls:#a78bfa;--iddfs:#00d4ff;
+      --bestfs:#f472b6;--astar:#facc15;--bidir:#38bdf8;
+      --green:#00ff88;--red:#ff4757;
+    }
+    html,body{height:100%;overflow:hidden}
+    body{background:var(--bg);color:var(--text);font-family:var(--mono);display:flex;flex-direction:column}
+    header{
+      display:flex;align-items:center;gap:12px;padding:10px 20px;
+      border-bottom:1px solid var(--border);background:rgba(5,8,16,.95);flex-shrink:0;
+    }
+    .back{padding:5px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--s2);
+      color:var(--muted);font-size:11px;cursor:pointer;text-decoration:none;
+      transition:color .2s,border-color .2s;font-family:var(--mono);}
+    .back:hover{color:var(--text);border-color:var(--green)}
+    .logo{font-family:var(--display);font-size:18px;font-weight:800}
+    .logo em{font-style:normal;color:var(--green)}
+    .badge{padding:3px 10px;border-radius:4px;font-size:10px;background:var(--s2);border:1px solid var(--border2);color:var(--muted)}
+    .page-links{display:flex;align-items:center;gap:8px}
+    .page-link{
+      padding:5px 10px;border-radius:7px;
+      border:1px solid var(--border2);background:var(--s2);
+      color:var(--muted);text-decoration:none;font-size:10px;font-weight:700;
+      letter-spacing:.3px;transition:color .2s,border-color .2s,transform .2s;
+    }
+    .page-link:hover{color:var(--text);border-color:var(--green);transform:translateY(-1px)}
+    .page-link.active{color:var(--green);border-color:rgba(0,255,136,.5);background:rgba(0,255,136,.08)}
+    .rdot{width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1s infinite;display:none;margin-left:auto}
+    .hstatus{font-size:11px;color:var(--muted);margin-left:8px;min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+    @media (max-width: 1024px){
+      header{flex-wrap:wrap}
+      .page-links{width:100%;order:2;padding-top:6px}
+      .rdot{margin-left:0}
+    }
+
+    .app{display:flex;flex:1;overflow:hidden}
+    .sidebar{width:240px;flex-shrink:0;overflow-y:auto;border-right:1px solid var(--border);background:var(--s1);padding:10px}
+    .canvas-area{flex:1;display:flex;flex-direction:column;overflow:hidden}
+    .canvas-wrap{flex:1;overflow:hidden;position:relative}
+    canvas{display:block}
+    .statusbar{
+      display:flex;flex-wrap:wrap;gap:4px;padding:6px 12px;
+      border-top:1px solid var(--border);background:var(--s2);flex-shrink:0;
+    }
+    .si{font-size:10px;padding:2px 8px;background:var(--s3);border-radius:3px;white-space:nowrap}
+    .sk{color:var(--muted);margin-right:4px}.sv{color:var(--text)}
+
+    .sec{margin-bottom:12px}
+    .sec-title{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+
+    .algo-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:4px}
+    .acard{
+      padding:8px;border-radius:8px;border:1px solid var(--border2);
+      background:var(--s2);cursor:pointer;transition:border-color .2s,background .2s;
+      display:flex;align-items:center;gap:6px;
+    }
+    .acard:hover{background:var(--s3)}
+    .acard.active{background:var(--s3);box-shadow:0 0 0 1px currentColor}
+    .adot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+    .aname{font-size:11px;font-weight:700}.asub{font-size:9px;color:var(--muted)}
+
+    .run-btn{
+      width:100%;padding:10px;border-radius:8px;border:none;cursor:pointer;
+      background:linear-gradient(135deg,rgba(0,255,136,.15),rgba(0,212,255,.1));
+      border:1px solid rgba(0,255,136,.3);color:var(--green);
+      font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:.5px;
+      transition:background .2s,box-shadow .2s;
+    }
+    .run-btn:hover{background:linear-gradient(135deg,rgba(0,255,136,.25),rgba(0,212,255,.15));box-shadow:0 0 20px rgba(0,255,136,.2)}
+    .ctrl3{display:flex;gap:5px}
+    .pbtn2{flex:1;padding:7px 4px;border-radius:6px;border:1px solid var(--border2);background:var(--s2);color:var(--muted);font-family:var(--mono);font-size:10px;cursor:pointer;transition:.2s}
+    .pbtn2:hover{color:var(--text);border-color:var(--border2)}
+    .pbtn2.active{color:var(--green);border-color:var(--green)}
+
+    .tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:6px}
+    .tbtn{padding:7px;border-radius:6px;border:1px solid var(--border2);background:var(--s2);
+      color:var(--muted);font-family:var(--mono);font-size:10px;cursor:pointer;text-align:center;transition:.2s}
+    .tbtn:hover{color:var(--text)}.tbtn.active{color:var(--green);border-color:var(--green);background:var(--s3)}
+    .crow{display:flex;gap:5px;margin-top:5px}
+    .cbtn{flex:1;padding:6px;border-radius:6px;border:1px solid var(--border2);background:var(--s2);color:var(--muted);font-family:var(--mono);font-size:10px;cursor:pointer;transition:.2s}
+    .cbtn:hover{color:var(--red);border-color:var(--red)}
+
+    .rwrap{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted)}
+    input[type=range]{flex:1;accent-color:var(--green)}
+
+    .pgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px}
+    .pbtn{padding:5px;border-radius:5px;border:1px solid var(--border2);background:var(--s2);
+      color:var(--muted);font-family:var(--mono);font-size:9px;cursor:pointer;text-align:center;transition:.2s}
+    .pbtn:hover{color:var(--text);border-color:var(--border2)}
+
+    .info-box{background:var(--s2);border-radius:8px;padding:8px;border:1px solid var(--border)}
+    .irow{display:flex;justify-content:space-between;font-size:10px;padding:3px 0;border-bottom:1px solid var(--border)}
+    .irow:last-of-type{border:none}
+    .irow span:first-child{color:var(--muted)}
+    .idesc{font-size:10px;color:var(--muted);margin-top:8px;line-height:1.5;padding-top:6px;border-top:1px solid var(--border)}
+
+    .st-box{background:var(--s2);border-radius:8px;padding:8px;border:1px solid var(--border)}
+    .st-row{display:flex;justify-content:space-between;font-size:10px;padding:2px 0}
+    .st-k{color:var(--muted)}.st-v{color:var(--text);font-weight:600}
+
+    .stats-list{font-size:11px}
+    .stat-row{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-wrap:wrap}
+    .salgo{font-weight:700;font-size:11px;width:70px}
+    .sdet{display:flex;justify-content:space-between;padding:3px 0;font-size:10px;border-bottom:1px solid var(--border)}
+    .sdet span:first-child{color:var(--muted)}
+
+    .lrow{display:flex;align-items:center;gap:8px;font-size:10px;padding:2px 0}
+    .ldot{width:10px;height:10px;border-radius:2px}
+    .srow{display:flex;align-items:center;gap:8px;font-size:10px;padding:2px 0}
+    kbd{padding:2px 6px;border-radius:4px;background:var(--s3);border:1px solid var(--border2);font-size:9px;font-family:var(--mono)}
+
+    ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--s1)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+  </style>
+</head>
+<body>
+<header>
+  <a href="index.html" class="back">← Home</a>
+  <div class="logo"><em>Path</em>Finder</div>
+  <div class="badge">Single Algo</div>
+  <div class="page-links">
+    <a href="solo.html" class="page-link active">Single</a>
+    <a href="dual.html" class="page-link">Dual</a>
+    <a href="all.html" class="page-link">All</a>
+  </div>
+  <div class="rdot" id="rdot"></div>
+  <div class="hstatus" id="hstatus">Ready — draw walls then run an algorithm</div>
+</header>
+
+<div class="app">
+  <aside class="sidebar">
+
+    <div class="sec">
+      <div class="sec-title">Algorithm</div>
+      <div class="algo-grid">
+        <div class="acard active" data-algo="bfs" onclick="selectAlgo('bfs',this)">
+          <div class="adot" style="background:var(--bfs)"></div>
+          <div><div class="aname">BFS</div><div class="asub">Breadth-First</div></div>
+        </div>
+        <div class="acard" data-algo="dfs" onclick="selectAlgo('dfs',this)">
+          <div class="adot" style="background:var(--dfs)"></div>
+          <div><div class="aname">DFS</div><div class="asub">Depth-First</div></div>
+        </div>
+        <div class="acard" data-algo="dls" onclick="selectAlgo('dls',this)">
+          <div class="adot" style="background:var(--dls)"></div>
+          <div><div class="aname">DLS</div><div class="asub">Depth-Limited</div></div>
+        </div>
+        <div class="acard" data-algo="iddfs" onclick="selectAlgo('iddfs',this)">
+          <div class="adot" style="background:var(--iddfs)"></div>
+          <div><div class="aname">IDDFS</div><div class="asub">Iterative Deep</div></div>
+        </div>
+        <div class="acard" data-algo="bestfs" onclick="selectAlgo('bestfs',this)">
+          <div class="adot" style="background:var(--bestfs)"></div>
+          <div><div class="aname">Best-F</div><div class="asub">Greedy</div></div>
+        </div>
+        <div class="acard" data-algo="astar" onclick="selectAlgo('astar',this)">
+          <div class="adot" style="background:var(--astar)"></div>
+          <div><div class="aname">A★</div><div class="asub">A-Star</div></div>
+        </div>
+        <div class="acard" data-algo="bidir" onclick="selectAlgo('bidir',this)" style="grid-column:span 2">
+          <div class="adot" style="background:var(--bidir)"></div>
+          <div><div class="aname">Bidirectional</div><div class="asub">Two-way BFS</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">Algorithm Info</div>
+      <div class="info-box">
+        <div class="irow"><span>Type</span><span id="iType">Uninformed</span></div>
+        <div class="irow"><span>Optimal?</span><span id="iOpt">✓ Yes</span></div>
+        <div class="irow"><span>Complete?</span><span id="iComp">✓ Yes</span></div>
+        <div class="irow"><span>Time</span><span id="iTime">O(V+E)</span></div>
+        <div class="irow"><span>Space</span><span id="iSpace">O(V)</span></div>
+        <div class="idesc" id="iDesc">Explores all nodes level by level.</div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">Visualize</div>
+      <button class="run-btn" id="runBtn" onclick="toggleRun()">▶  Run Algorithm</button>
+      <div class="ctrl3" style="margin-top:6px">
+        <button class="pbtn2" id="pauseBtn" onclick="togglePause()">⏸ Pause</button>
+        <button class="pbtn2" onclick="rewindRun()">↺ Rewind</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">Edit Map</div>
+      <div class="tool-grid">
+        <div class="tbtn active" id="tWall"  onclick="setTool('wall')">■ Wall</div>
+        <div class="tbtn"        id="tErase" onclick="setTool('erase')">□ Erase</div>
+        <div class="tbtn"        id="tStart" onclick="setTool('start')">▶ Start</div>
+        <div class="tbtn"        id="tEnd"   onclick="setTool('end')">● Goal</div>
+      </div>
+      <div class="crow">
+        <button class="cbtn" onclick="doReset(false)">Clear Paths</button>
+        <button class="cbtn" onclick="doReset(true)">Reset All</button>
+      </div>
+      <div style="margin-top:6px">
+        <div class="tbtn" id="diagBtn" style="width:100%;text-align:center">Movement: 4-direction only</div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">Speed</div>
+      <div class="rwrap">
+        <span>Slow</span>
+        <input type="range" min="1" max="10" value="5" id="speedSlider" oninput="animSpeed=+this.value;document.getElementById('speedVal').textContent=this.value"/>
+        <span id="speedVal">5</span>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">Grid Size</div>
+      <div class="rwrap">
+        <span>S</span>
+        <input type="range" min="10" max="60" value="25" id="gridSlider" oninput="document.getElementById('gridVal').textContent=this.value" onchange="resizeGridUI()"/>
+        <span id="gridVal">25</span>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">Maze Presets</div>
+      <div class="pgrid">
+        <div class="pbtn" onclick="doMaze('random')">Random</div>
+        <div class="pbtn" onclick="doMaze('spiral')">Spiral</div>
+        <div class="pbtn" onclick="doMaze('chambers')">Rooms</div>
+        <div class="pbtn" onclick="doMaze('recursive')">Recur.</div>
+        <div class="pbtn" onclick="doMaze('corridor')">Corrid.</div>
+        <div class="pbtn" onclick="doMaze('diagonal')">Diag.</div>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">Live Search Tree</div>
+      <div class="st-box" id="stPanel">
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">Legend</div>
+      <div class="lrow"><div class="ldot" style="background:#1e3050;border:1px solid #2d4a7a"></div><span>Wall</span></div>
+      <div class="lrow"><div class="ldot" style="background:var(--green)"></div><span>Start ▶</span></div>
+      <div class="lrow"><div class="ldot" style="background:var(--red)"></div><span>Goal ●</span></div>
+      <div class="lrow"><div class="ldot" style="background:rgba(52,211,153,.3)"></div><span>Visited</span></div>
+      <div class="lrow"><div class="ldot" style="background:#fff;border:1px solid #aaa"></div><span>Car</span></div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">Shortcuts</div>
+      <div class="srow"><kbd>R</kbd><span>Run</span></div>
+      <div class="srow"><kbd>Space</kbd><span>Pause</span></div>
+      <div class="srow"><kbd>Esc</kbd><span>Clear</span></div>
+    </div>
+
+    <div class="sec" id="statsSection" style="display:none">
+      <div class="sec-title">Last Run</div>
+      <div class="stats-list" id="statsList"></div>
+    </div>
+
+  </aside>
+
+  <div class="canvas-area">
+    <div class="canvas-wrap" id="canvasWrap">
+      <canvas id="gc"></canvas>
+    </div>
+    <div class="statusbar">
+      <div class="si"><span class="sk">Algo:</span><span class="sv" id="sbAlgo" style="color:var(--bfs)">BFS</span></div>
+      <div class="si"><span class="sk">Move:</span><span class="sv" id="sbDiag">4-dir</span></div>
+      <div class="si"><span class="sk">Grid:</span><span class="sv" id="sbGrid">–</span></div>
+      <div class="si"><span class="sk">Visited:</span><span class="sv" id="sbVisited">0</span></div>
+      <div class="si"><span class="sk">Path:</span><span class="sv" id="sbPath">–</span></div>
+      <div class="si"><span class="sk">Cost:</span><span class="sv" id="sbCost">–</span></div>
+      <div class="si"><span class="sk">Time:</span><span class="sv" id="sbTime">–</span></div>
+    </div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script>
+var ctx, canvas;
+var currentAlgo = 'bfs', currentTool = 'wall';
+var isRunning = false, isPaused = false, animSpeed = 5;
+
+function init() {
+  var res = initGrid('gc');
+  canvas = res.canvas; ctx = res.ctx;
+  document.getElementById('sbGrid').textContent = COLS + '×' + ROWS;
+  genMaze('chambers', grid, ROWS, COLS, startCell, endCell);
+  drawAll(ctx, grid, startCell, endCell, CELL);
+  updateInfoPanel('bfs');
+  initListeners();
+}
+
+function updateInfoPanel(algo) {
+  var info = INFO[algo]; if(!info) return;
+  document.getElementById('iType').textContent  = info.type;
+  document.getElementById('iOpt').textContent   = info.opt;
+  document.getElementById('iOpt').style.color   = info.opt.startsWith('✓') ? 'var(--green)' : 'var(--red)';
+  document.getElementById('iComp').textContent  = info.comp;
+  document.getElementById('iComp').style.color  = info.comp.startsWith('✓') ? 'var(--green)' : 'var(--red)';
+  document.getElementById('iTime').textContent  = info.time;
+  document.getElementById('iSpace').textContent = info.space;
+  document.getElementById('iDesc').textContent  = info.desc;
+}
+
+function selectAlgo(algo, el) {
+  document.querySelectorAll('.acard').forEach(c=>{c.classList.remove('active');c.style.cssText='';});
+  el.classList.add('active');
+  currentAlgo = algo;
+  document.getElementById('sbAlgo').textContent = NAMES[algo];
+  document.getElementById('sbAlgo').style.color = COLORS[algo];
+  updateInfoPanel(algo);
+}
+
+function setTool(t) {
+  currentTool = t;
+  ['wall','erase','start','end'].forEach(k => {
+    var el = document.getElementById('t'+k.charAt(0).toUpperCase()+k.slice(1));
+    if(el) el.className = 'tbtn' + (k===t?' active':'');
+  });
+}
+
+function toggleDiag() {
+  diagonalMove = false; rebuildDirs();
+  var btn = document.getElementById('diagBtn');
+  btn.textContent = 'Movement: 4-direction only';
+  btn.className = 'tbtn';
+  document.getElementById('sbDiag').textContent = '4-dir';
+}
+
+function doMaze(type) {
+  if(isRunning) return;
+  genMaze(type, grid, ROWS, COLS, startCell, endCell);
+  clearState(grid);
+  document.getElementById('statsSection').style.display = 'none';
+  drawAll(ctx, grid, startCell, endCell, CELL);
+  setStatus('Maze generated — ready to run');
+}
+
+function doReset(full) {
+  if(isRunning){ isRunning=false; stopCar(); }
+  if(full) clearWalls(grid);
+  else clearState(grid);
+  document.getElementById('statsSection').style.display = 'none';
+  drawAll(ctx, grid, startCell, endCell, CELL);
+  setStatus('Ready — draw walls then run an algorithm');
+}
+
+function resizeGridUI() {
+  var v = parseInt(document.getElementById('gridSlider').value);
+  COLS = v; ROWS = Math.max(8, Math.floor(v * 0.65));
+  var res = initGrid('gc');
+  canvas = res.canvas; ctx = res.ctx;
+  document.getElementById('sbGrid').textContent = COLS + '×' + ROWS;
+  genMaze('chambers', grid, ROWS, COLS, startCell, endCell);
+  drawAll(ctx, grid, startCell, endCell, CELL);
+}
+
+function setStatus(msg) { document.getElementById('hstatus').textContent = msg; }
+
+function updateSearchTree(data) {
+  document.getElementById('stPanel').innerHTML =
+    '<div class="st-row"><span class="st-k">Processing</span><span class="st-v">['+data.cr+','+data.cc+']</span></div>' +
+    '<div class="st-row"><span class="st-k">'+data.dsName+' size</span><span class="st-v">'+data.dsSize+'</span></div>' +
+    '<div class="st-row"><span class="st-k">Neighbours</span><span class="st-v">'+data.nbCount+'</span></div>' +
+    '<div class="st-row"><span class="st-k">Steps</span><span class="st-v">'+data.steps+'</span></div>' +
+    '<div class="st-row"><span class="st-k">Visited</span><span class="st-v">'+data.visited+'</span></div>';
+}
+
+function toggleRun() {
+  if(isRunning) { isRunning=false; stopCar(); return; }
+  runAlgo();
+}
+
+function togglePause() {
+  if(!isRunning) return;
+  isPaused = !isPaused;
+  var btn = document.getElementById('pauseBtn');
+  btn.textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+  btn.className = 'pbtn2' + (isPaused ? ' active' : '');
+  setStatus(isPaused ? 'Paused — press Resume' : 'Resumed…');
+}
+
+function rewindRun() { if(isRunning){isRunning=false;stopCar();}setTimeout(runAlgo,100); }
+
+async function runAlgo() {
+  if(isRunning) return;
+  isRunning=true; isPaused=false;
+  document.getElementById('rdot').style.display='block';
+  document.getElementById('runBtn').textContent='⏹  Stop';
+
+  clearState(grid);
+  drawAll(ctx, grid, startCell, endCell, CELL);
+  document.getElementById('stPanel').innerHTML='<div style="color:var(--muted);font-size:10px">Running…</div>';
+
+  var color = COLORS[currentAlgo];
+  var visitColor = hexRgba(color, 0.28);
+  var pathColor  = hexRgba(color, 0.88);
+  var dsName = (currentAlgo==='bfs'||currentAlgo==='bestfs'||currentAlgo==='astar'||currentAlgo==='bidir') ? 'Queue' : 'Stack';
+
+  var t0 = performance.now();
+  var result = await runPythonAlgo(currentAlgo, startCell, endCell, grid, ROWS, COLS);
+  var elapsed = result.time_ms || (performance.now() - t0);
+
+  var visitDelay = Math.max(1, 18 - animSpeed*1.8);
+  var batch = Math.max(1, Math.floor(animSpeed*2.5));
+  var i = 0;
+
+  await new Promise(function(resolve) {
+    function step() {
+      if(!isRunning){resolve();return;}
+      if(isPaused){setTimeout(step,60);return;}
+      for(var j=0;j<batch&&i<result.visited.length;j++,i++){
+        var cell=result.visited[i];
+        if(cell!==startCell&&cell!==endCell){cell.visited=true;cell.visitColor=visitColor;drawCell(ctx,cell,startCell,endCell,CELL);}
+        updateSearchTree({cr:cell.r,cc:cell.c,dsName,dsSize:result.visited.length-i-1,nbCount:neighbours(cell,grid,ROWS,COLS).length,steps:i+1,visited:i+1});
+      }
+      document.getElementById('sbVisited').textContent=i;
+      if(i<result.visited.length)setTimeout(step,visitDelay);else resolve();
+    }
+    step();
+  });
+
+  if(!isRunning){finishRun();return;}
+
+  var pathDelay = Math.max(8,55-animSpeed*5);
+  for(var p=0;p<result.path.length;p++){
+    if(!isRunning){finishRun();return;}
+    while(isPaused){await sleep(50);if(!isRunning){finishRun();return;}}
+    var cell=result.path[p];
+    if(cell!==startCell&&cell!==endCell){cell.inPath=true;cell.pathColor=pathColor;drawCell(ctx,cell,startCell,endCell,CELL);await sleep(pathDelay);}
+  }
+
+  if(result.path.length>=2&&isRunning){
+    setStatus(NAMES[currentAlgo]+' — driving car…');
+    drawAll(ctx,grid,startCell,endCell,CELL);
+    await animateCar(ctx,result.path,CELL,animSpeed);
+    drawAll(ctx,grid,startCell,endCell,CELL);
+  }
+
+  document.getElementById('sbPath').textContent = result.path.length||'–';
+  document.getElementById('sbTime').textContent = elapsed.toFixed(1)+' ms';
+  document.getElementById('sbCost').textContent = result.path.length?result.pathCost.toFixed(2):'–';
+
+  setStatus(result.path.length
+    ? NAMES[currentAlgo]+' — path:'+result.path.length+' cells | cost:'+result.pathCost.toFixed(2)+' | visited:'+result.visited.length+' | '+elapsed.toFixed(1)+'ms'
+    : NAMES[currentAlgo]+' — No path found');
+
+  document.getElementById('statsList').innerHTML =
+    '<div class="sdet"><span>Algorithm</span><span style="color:'+COLORS[currentAlgo]+'">'+NAMES[currentAlgo]+'</span></div>' +
+    '<div class="sdet"><span>Visited cells</span><span>'+result.visited.length+'</span></div>' +
+    '<div class="sdet"><span>Path length</span><span>'+(result.path.length?result.path.length+' cells':'Not found')+'</span></div>' +
+    '<div class="sdet"><span>Path cost</span><span>'+(result.path.length?result.pathCost.toFixed(2):'–')+'</span></div>' +
+    '<div class="sdet"><span>Time</span><span>'+elapsed.toFixed(2)+' ms</span></div>';
+  document.getElementById('statsSection').style.display='block';
+
+  finishRun();
+}
+
+function finishRun() {
+  isRunning=false;isPaused=false;stopCar();
+  document.getElementById('rdot').style.display='none';
+  document.getElementById('runBtn').textContent='▶  Run Algorithm';
+  document.getElementById('pauseBtn').textContent='⏸ Pause';
+  document.getElementById('pauseBtn').className='pbtn2';
+}
+
+function cellAt(cv,ex,ey){
+  var rect=cv.getBoundingClientRect();
+  var col=Math.floor((ex-rect.left)/CELL),row=Math.floor((ey-rect.top)/CELL);
+  if(row<0||row>=ROWS||col<0||col>=COLS)return null;
+  return grid[row][col];
+}
+
+function handlePtr(ex,ey,isDrag){
+  if(isRunning)return;
+  var cell=cellAt(canvas,ex,ey);if(!cell)return;
+  if(currentTool==='wall'){
+    if(cell!==startCell&&cell!==endCell){cell.wall=isDrag?true:!cell.wall;clearCellState(cell);drawCell(ctx,cell,startCell,endCell,CELL);}
+  }else if(currentTool==='erase'){
+    cell.wall=false;clearCellState(cell);drawCell(ctx,cell,startCell,endCell,CELL);
+  }else if(currentTool==='start'&&!isDrag){
+    var prev=startCell;startCell=cell;cell.wall=false;drawCell(ctx,prev,startCell,endCell,CELL);drawCell(ctx,cell,startCell,endCell,CELL);
+    // Redraw prev with updated startCell ref
+    drawAll(ctx,grid,startCell,endCell,CELL);
+  }else if(currentTool==='end'&&!isDrag){
+    var prev=endCell;endCell=cell;cell.wall=false;drawAll(ctx,grid,startCell,endCell,CELL);
+  }
+}
+
+function initListeners() {
+  canvas.addEventListener('mousedown',function(e){mouseDown=true;handlePtr(e.clientX,e.clientY,false);});
+  canvas.addEventListener('mousemove',function(e){if(mouseDown)handlePtr(e.clientX,e.clientY,true);});
+  canvas.addEventListener('mouseup',function(){mouseDown=false;});
+  canvas.addEventListener('mouseleave',function(){mouseDown=false;});
+  canvas.addEventListener('touchstart',function(e){e.preventDefault();mouseDown=true;handlePtr(e.touches[0].clientX,e.touches[0].clientY,false);},{passive:false});
+  canvas.addEventListener('touchmove',function(e){e.preventDefault();handlePtr(e.touches[0].clientX,e.touches[0].clientY,true);},{passive:false});
+  canvas.addEventListener('touchend',function(){mouseDown=false;});
+  window.addEventListener('resize',function(){
+    var wrap=document.getElementById('canvasWrap');
+    canvas.width=wrap.offsetWidth;canvas.height=wrap.offsetHeight;
+    CELL=Math.floor(Math.min(canvas.width/COLS,canvas.height/ROWS));
+    if(CELL<4)CELL=4;drawAll(ctx,grid,startCell,endCell,CELL);
+  });
+  document.addEventListener('keydown',function(e){
+    if(e.target.tagName==='INPUT')return;
+    if(e.key==='r'||e.key==='R'){runAlgo();return;}
+    if(e.key===' '){e.preventDefault();togglePause();return;}
+    if(e.key==='Escape'){isRunning=false;stopCar();clearState(grid);drawAll(ctx,grid,startCell,endCell,CELL);setStatus('Ready');}
+    if(e.key==='d'||e.key==='D'){}
+  });
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>

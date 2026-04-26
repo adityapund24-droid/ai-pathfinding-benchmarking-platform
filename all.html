@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>PathFinder AI — All Algorithms</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800&display=swap" rel="stylesheet"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#050810;--s1:#0c1120;--s2:#111827;--s3:#1a2235;
+      --border:#1e3050;--border2:#243655;
+      --text:#e2e8f0;--muted:#4a6080;
+      --mono:'JetBrains Mono',monospace;--display:'Syne',sans-serif;
+      --bfs:#34d399;--dfs:#fb923c;--dls:#a78bfa;--iddfs:#00d4ff;
+      --bestfs:#f472b6;--astar:#facc15;--bidir:#38bdf8;
+      --green:#00ff88;--red:#ff4757;
+    }
+    html,body{height:100%;overflow:hidden}
+    body{background:var(--bg);color:var(--text);font-family:var(--mono);display:flex;flex-direction:column}
+    header{
+      display:flex;align-items:center;gap:12px;padding:10px 20px;
+      border-bottom:1px solid var(--border);background:rgba(5,8,16,.95);flex-shrink:0;
+    }
+    .back{padding:5px 12px;border-radius:6px;border:1px solid var(--border2);background:var(--s2);
+      color:var(--muted);font-size:11px;cursor:pointer;text-decoration:none;
+      transition:color .2s,border-color .2s;font-family:var(--mono);}
+    .back:hover{color:var(--text);border-color:var(--green)}
+    .logo{font-family:var(--display);font-size:18px;font-weight:800}
+    .logo em{font-style:normal;color:var(--iddfs)}
+    .badge{padding:3px 10px;border-radius:4px;font-size:10px;background:var(--s2);border:1px solid var(--border2);color:var(--muted)}
+    .page-links{display:flex;align-items:center;gap:8px}
+    .page-link{
+      padding:5px 10px;border-radius:7px;
+      border:1px solid var(--border2);background:var(--s2);
+      color:var(--muted);text-decoration:none;font-size:10px;font-weight:700;
+      letter-spacing:.3px;transition:color .2s,border-color .2s,transform .2s;
+    }
+    .page-link:hover{color:var(--text);border-color:var(--iddfs);transform:translateY(-1px)}
+    .page-link.active{color:var(--iddfs);border-color:rgba(0,212,255,.5);background:rgba(0,212,255,.08)}
+    .rdot{width:8px;height:8px;border-radius:50%;background:var(--red);animation:pulse 1s infinite;display:none;margin-left:auto}
+    .hstatus{font-size:11px;color:var(--muted);margin-left:6px}
+    @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+    @keyframes slideIn{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+
+    @media (max-width: 1024px){
+      header{flex-wrap:wrap}
+      .page-links{width:100%;order:2;padding-top:6px}
+      .rdot{margin-left:0}
+    }
+
+    .app{display:flex;flex:1;overflow:hidden}
+
+    /* ── SIDEBAR ── */
+    .sidebar{width:200px;flex-shrink:0;overflow-y:auto;border-right:1px solid var(--border);background:var(--s1);padding:10px}
+    .sec{margin-bottom:12px}
+    .sec-title{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+    .run-btn{
+      width:100%;padding:10px;border-radius:8px;border:none;cursor:pointer;
+      background:linear-gradient(135deg,rgba(0,212,255,.15),rgba(0,212,255,.07));
+      border:1px solid rgba(0,212,255,.35);color:var(--iddfs);
+      font-family:var(--mono);font-size:12px;font-weight:700;
+      transition:background .2s,box-shadow .2s;
+    }
+    .run-btn:hover{box-shadow:0 0 20px rgba(0,212,255,.2)}
+    .tbtn{padding:6px;border-radius:6px;border:1px solid var(--border2);background:var(--s2);
+      color:var(--muted);font-family:var(--mono);font-size:10px;cursor:pointer;text-align:center;transition:.2s;display:block;width:100%}
+    .tbtn:hover{color:var(--text)}.tbtn.active{color:var(--green);border-color:var(--green);background:var(--s3)}
+    .tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-bottom:5px}
+    .crow{display:flex;gap:4px;margin-top:4px}
+    .cbtn{flex:1;padding:6px;border-radius:6px;border:1px solid var(--border2);background:var(--s2);color:var(--muted);font-family:var(--mono);font-size:10px;cursor:pointer;transition:.2s}
+    .cbtn:hover{color:var(--red);border-color:var(--red)}
+    .rwrap{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted)}
+    input[type=range]{flex:1;accent-color:var(--iddfs)}
+    .pgrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:3px}
+    .pbtn-maze{padding:5px 3px;border-radius:5px;border:1px solid var(--border2);background:var(--s2);
+      color:var(--muted);font-family:var(--mono);font-size:9px;cursor:pointer;text-align:center;transition:.2s}
+    .pbtn-maze:hover{color:var(--text)}
+
+    /* ── MAIN AREA ── */
+    .main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+
+    /* ── GRID 7-up ── */
+    .grids-area{flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:1fr 1fr;overflow:hidden;gap:1px;background:var(--border)}
+    .grid-panel{background:var(--bg);display:flex;flex-direction:column;overflow:hidden;position:relative}
+    .grid-label{
+      padding:4px 8px;font-size:10px;font-weight:700;
+      border-bottom:1px solid var(--border);background:var(--s1);flex-shrink:0;
+      display:flex;align-items:center;justify-content:space-between;
+    }
+    .gl-left{display:flex;align-items:center;gap:6px}
+    .grid-dot{width:7px;height:7px;border-radius:50%}
+    .gl-stats{font-size:9px;color:var(--muted);display:flex;gap:6px}
+    .canvas-wrap{flex:1;overflow:hidden}
+    canvas{display:block}
+    .rank-badge{
+      position:absolute;top:26px;right:6px;
+      width:20px;height:20px;border-radius:50%;
+      display:flex;align-items:center;justify-content:center;
+      font-size:10px;font-weight:900;border:1px solid;
+      opacity:0;transition:opacity .4s;
+    }
+
+    /* ── BOTTOM RESULTS PANEL ── */
+    .results-panel{
+      flex-shrink:0;border-top:1px solid var(--border);background:var(--s1);
+      overflow:hidden;transition:max-height .4s;max-height:0;
+    }
+    .results-panel.open{max-height:340px}
+    .results-inner{padding:12px 16px;overflow-y:auto;max-height:340px}
+    .results-tabs{display:flex;gap:6px;margin-bottom:12px}
+    .rtab{
+      padding:5px 14px;border-radius:6px;border:1px solid var(--border2);
+      background:var(--s2);color:var(--muted);font-size:10px;cursor:pointer;
+      font-family:var(--mono);transition:.2s;
+    }
+    .rtab:hover{color:var(--text)}.rtab.active{color:var(--iddfs);border-color:var(--iddfs);background:var(--s3)}
+
+    /* Table */
+    .results-table{width:100%;border-collapse:collapse;font-size:10px}
+    .results-table th{padding:6px 10px;border-bottom:1px solid var(--border);color:var(--muted);text-align:left;font-weight:600;font-size:9px;letter-spacing:1px;text-transform:uppercase}
+    .results-table td{padding:7px 10px;border-bottom:1px solid var(--border);font-size:11px}
+    .results-table tr:last-child td{border:none}
+    .winner-row td{background:rgba(0,255,136,.04)}
+    .td-rank{font-weight:900;width:32px}
+    .td-algo{font-weight:700}
+    .td-winner-badge{font-size:9px;padding:2px 7px;border-radius:10px;background:rgba(0,255,136,.15);color:var(--green);border:1px solid rgba(0,255,136,.3);margin-left:6px}
+
+    /* Bar Charts */
+    .charts-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .chart-box{background:var(--s2);border:1px solid var(--border);border-radius:10px;padding:12px}
+    .chart-title{font-size:10px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:10px}
+    .bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+    .bar-label{font-size:10px;width:70px;text-align:right;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .bar-track{flex:1;height:16px;background:var(--s3);border-radius:4px;overflow:hidden}
+    .bar-fill{height:100%;border-radius:4px;transition:width .8s cubic-bezier(.4,0,.2,1);width:0}
+    .bar-val{font-size:9px;width:52px;flex-shrink:0;color:var(--muted)}
+
+    ::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--s1)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
+  </style>
+</head>
+<body>
+<header>
+  <a href="index.html" class="back">← Home</a>
+  <div class="logo"><em>Path</em>Finder</div>
+  <div class="badge">All Algorithms</div>
+  <div class="page-links">
+    <a href="solo.html" class="page-link">Single</a>
+    <a href="dual.html" class="page-link">Dual</a>
+    <a href="all.html" class="page-link active">All</a>
+  </div>
+  <div class="rdot" id="rdot"></div>
+</header>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="sec">
+      <button class="run-btn" id="runBtn" onclick="toggleRun()">Run All Algos</button>
+      <div style="margin-top:6px">
+        <button class="tbtn" onclick="resetPaths()" style="margin-bottom:4px">Clear Paths</button>
+        <button class="tbtn" onclick="resetAll()">Reset All</button>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title"><strong>Edit Map</strong></div>
+      <div class="tool-grid">
+        <div class="tbtn active" id="tWall"  onclick="setTool('wall')">■ Wall</div>
+        <div class="tbtn"        id="tErase" onclick="setTool('erase')">□ Erase</div>
+        <div class="tbtn"        id="tStart" onclick="setTool('start')">▶ Start</div>
+        <div class="tbtn"        id="tEnd"   onclick="setTool('end')">● Goal</div>
+      </div>
+      <div style="margin-top:5px">
+        
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">Speed</div>
+      <div class="rwrap">
+        <span>S</span>
+        <input type="range" min="1" max="10" value="6" id="speedSlider" oninput="animSpeed=+this.value;document.getElementById('speedVal').textContent=this.value"/>
+        <span id="speedVal">6</span>
+      </div>
+    </div>
+
+    <div class="sec">
+      <div class="sec-title">Maze Presets</div>
+      <div class="pgrid">
+        <div class="pbtn-maze" onclick="doMaze('random')">Random</div>
+        <div class="pbtn-maze" onclick="doMaze('spiral')">Spiral</div>
+        <div class="pbtn-maze" onclick="doMaze('chambers')">Rooms</div>
+        <div class="pbtn-maze" onclick="doMaze('recursive')">Recur.</div>
+        <div class="pbtn-maze" onclick="doMaze('corridor')">Corrid.</div>
+        <div class="pbtn-maze" onclick="doMaze('diagonal')">Diag.</div>
+      </div>
+    </div>
+
+    <div class="sec" style="font-size:10px;color:var(--muted);line-height:1.7">
+      <div class="sec-title">Algorithms</div>
+      <div style="display:flex;flex-direction:column;gap:4px">
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:var(--bfs)"></div>BFS</div>
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:var(--dfs)"></div>DFS</div>
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:var(--dls)"></div>DLS</div>
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:var(--iddfs)"></div>IDDFS</div>
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:var(--bestfs)"></div>Best-First</div>
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:var(--astar)"></div>A★ Search</div>
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:8px;height:8px;border-radius:50%;background:var(--bidir)"></div>Bidirectional</div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="grids-area" id="gridsArea">
+      <!-- 7 panels + 1 empty slot in 4x2 grid -->
+      <div class="grid-panel" id="panelBFS">
+        <div class="grid-label"><div class="gl-left"><div class="grid-dot" style="background:var(--bfs)"></div>BFS</div><div class="gl-stats" id="statsBFS">–</div></div>
+        <div class="canvas-wrap"><canvas id="gcBFS"></canvas></div>
+        <div class="rank-badge" id="rankBFS"></div>
+      </div>
+      <div class="grid-panel" id="panelDFS">
+        <div class="grid-label"><div class="gl-left"><div class="grid-dot" style="background:var(--dfs)"></div>DFS</div><div class="gl-stats" id="statsDFS">–</div></div>
+        <div class="canvas-wrap"><canvas id="gcDFS"></canvas></div>
+        <div class="rank-badge" id="rankDFS"></div>
+      </div>
+      <div class="grid-panel" id="panelDLS">
+        <div class="grid-label"><div class="gl-left"><div class="grid-dot" style="background:var(--dls)"></div>DLS</div><div class="gl-stats" id="statsDLS">–</div></div>
+        <div class="canvas-wrap"><canvas id="gcDLS"></canvas></div>
+        <div class="rank-badge" id="rankDLS"></div>
+      </div>
+      <div class="grid-panel" id="panelIDDFS">
+        <div class="grid-label"><div class="gl-left"><div class="grid-dot" style="background:var(--iddfs)"></div>IDDFS</div><div class="gl-stats" id="statsIDDFS">–</div></div>
+        <div class="canvas-wrap"><canvas id="gcIDDFS"></canvas></div>
+        <div class="rank-badge" id="rankIDDFS"></div>
+      </div>
+      <div class="grid-panel" id="panelBESTFS">
+        <div class="grid-label"><div class="gl-left"><div class="grid-dot" style="background:var(--bestfs)"></div>Best-First</div><div class="gl-stats" id="statsBESTFS">–</div></div>
+        <div class="canvas-wrap"><canvas id="gcBESTFS"></canvas></div>
+        <div class="rank-badge" id="rankBESTFS"></div>
+      </div>
+      <div class="grid-panel" id="panelASTAR">
+        <div class="grid-label"><div class="gl-left"><div class="grid-dot" style="background:var(--astar)"></div>A★ Search</div><div class="gl-stats" id="statsASTAR">–</div></div>
+        <div class="canvas-wrap"><canvas id="gcASTAR"></canvas></div>
+        <div class="rank-badge" id="rankASTAR"></div>
+      </div>
+      <div class="grid-panel" id="panelBIDIR">
+        <div class="grid-label"><div class="gl-left"><div class="grid-dot" style="background:var(--bidir)"></div>Bidirectional</div><div class="gl-stats" id="statsBIDIR">–</div></div>
+        <div class="canvas-wrap"><canvas id="gcBIDIR"></canvas></div>
+        <div class="rank-badge" id="rankBIDIR"></div>
+      </div>
+      <!-- 8th slot: summary placeholder -->
+      <div class="grid-panel" id="summaryPanel" style="background:var(--s1);display:flex;align-items:center;justify-content:center;flex-direction:column;gap:8px;padding:16px">
+        <div style="font-size:24px">🏆</div>
+        <div style="font-family:var(--display);font-size:14px;font-weight:800;color:var(--iddfs)">Results</div>
+        <div style="font-size:10px;color:var(--muted);text-align:center;line-height:1.6" id="summaryText">Run all algorithms to see the winner and comparison charts below</div>
+      </div>
+    </div>
+
+    <div class="results-panel" id="resultsPanel">
+      <div class="results-inner">
+        <div class="results-tabs">
+          <button class="rtab active" id="tabTable" onclick="showTab('table')">📊 Leaderboard</button>
+          <button class="rtab" id="tabCharts" onclick="showTab('charts')">📈 Bar Charts</button>
+        </div>
+        <div id="tabTableContent"></div>
+        <div id="tabChartsContent" style="display:none"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="js/core.js"></script>
+<script>
+var ALGOS = ['bfs','dfs','dls','iddfs','bestfs','astar','bidir'];
+var ALGO_KEYS = {BFS:'bfs',DFS:'dfs',DLS:'dls',IDDFS:'iddfs',BESTFS:'bestfs',ASTAR:'astar',BIDIR:'bidir'};
+var states = {}; // {bfs:{canvas,ctx,grid,startCell,endCell,ROWS,COLS}}
+var baseWallGrid = null; // shared wall source
+var currentTool='wall', animSpeed=6;
+var isRunning=false;
+
+function setStatus(m){document.getElementById('hstatus').textContent=m;}
+
+function initAll() {
+  var area = document.getElementById('gridsArea');
+  var panels = area.querySelectorAll('.grid-panel');
+  // Calculate size per cell in the 4x2 grid
+  var W4 = Math.floor((area.offsetWidth-3)/4);
+  var H2 = Math.floor((area.offsetHeight-1)/2);
+  
+  var cs = Math.floor(Math.min(W4/20, H2/13));
+  if(cs<3)cs=3;
+  var cols=Math.floor(W4/cs), rows=Math.floor(H2/cs);
+  CELL=cs; COLS=cols; ROWS=rows;
+
+  ALGOS.forEach(function(k){
+    var id='gc'+k.toUpperCase();
+    var cv=document.getElementById(id);
+    if(!cv)return;
+    cv.width=W4; cv.height=H2;
+    var ctx=cv.getContext('2d');
+    var g=[];
+    for(var r=0;r<rows;r++){g[r]=[];for(var c=0;c<cols;c++)g[r][c]=makeCell(r,c);}
+    var sc=g[Math.floor(rows/2)][2], ec=g[Math.floor(rows/2)][cols-3];
+    states[k]={canvas:cv,ctx,grid:g,startCell:sc,endCell:ec,ROWS:rows,COLS:cols};
+  });
+
+  // Generate maze on first algo, sync to all
+  genMaze('chambers',states.bfs.grid,rows,cols,states.bfs.startCell,states.bfs.endCell);
+  syncWallsToAll();
+  drawAllGrids();
+  initListeners();
+}
+
+function syncWallsToAll() {
+  var src=states.bfs.grid;
+  ALGOS.forEach(function(k){
+    if(k==='bfs')return;
+    for(var r=0;r<ROWS;r++)for(var c=0;c<COLS;c++){
+      states[k].grid[r][c].wall=src[r][c].wall;
+    }
+  });
+}
+
+function drawAllGrids() {
+  ALGOS.forEach(function(k){
+    var st=states[k];
+    drawAll(st.ctx,st.grid,st.startCell,st.endCell,CELL);
+  });
+}
+
+function doMaze(type) {
+  if(isRunning)return;
+  var src=states.bfs;
+  genMaze(type,src.grid,src.ROWS,src.COLS,src.startCell,src.endCell);
+  ALGOS.forEach(k=>clearState(states[k].grid));
+  syncWallsToAll();
+  drawAllGrids();
+  document.getElementById('resultsPanel').classList.remove('open');
+  resetStatsUI();
+  setStatus('Maze ready — run all algorithms');
+}
+
+function resetPaths() {
+  if(isRunning){isRunning=false;stopCar();}
+  ALGOS.forEach(k=>clearState(states[k].grid));
+  drawAllGrids();
+  document.getElementById('resultsPanel').classList.remove('open');
+  resetStatsUI();
+  hideRanks();
+}
+
+function resetAll() {
+  if(isRunning){isRunning=false;stopCar();}
+  ALGOS.forEach(k=>{clearWalls(states[k].grid);clearState(states[k].grid);});
+  drawAllGrids();
+  document.getElementById('resultsPanel').classList.remove('open');
+  resetStatsUI();
+  hideRanks();
+  setStatus('Ready — draw walls then run all algorithms');
+}
+
+function resetStatsUI() {
+  ALGOS.forEach(k=>{var el=document.getElementById('stats'+k.toUpperCase());if(el)el.textContent='–';});
+  document.getElementById('summaryText').textContent='Run all algorithms to see the winner and comparison charts below';
+}
+function hideRanks() {
+  ALGOS.forEach(k=>{var el=document.getElementById('rank'+k.toUpperCase());if(el)el.style.opacity='0';});
+}
+
+function toggleDiag() {
+  diagonalMove=false;rebuildDirs();
+  var btn=document.getElementById('diagBtn');
+  btn.textContent='Movement: 4-direction only';
+  btn.className='tbtn';
+}
+
+function setTool(t) {
+  currentTool=t;
+  ['wall','erase','start','end'].forEach(k=>{
+    var el=document.getElementById('t'+k.charAt(0).toUpperCase()+k.slice(1));
+    if(el)el.className='tbtn'+(k===t?' active':'');
+  });
+}
+
+function handlePtr(ex,ey,isDrag) {
+  if(isRunning)return;
+  // Check all canvases
+  for(var i=0;i<ALGOS.length;i++){
+    var k=ALGOS[i],st=states[k];
+    var rect=st.canvas.getBoundingClientRect();
+    if(ex<rect.left||ex>rect.right||ey<rect.top||ey>rect.bottom)continue;
+    var col=Math.floor((ex-rect.left)/CELL),row=Math.floor((ey-rect.top)/CELL);
+    if(row<0||row>=ROWS||col<0||col>=COLS)return;
+    if(currentTool==='wall'){
+      ALGOS.forEach(function(k2){
+        var c2=states[k2].grid[row][col];
+        if(c2!==states[k2].startCell&&c2!==states[k2].endCell){c2.wall=isDrag?true:!c2.wall;clearCellState(c2);}
+      });
+      drawAllGrids();
+    } else if(currentTool==='erase'){
+      ALGOS.forEach(function(k2){var c2=states[k2].grid[row][col];c2.wall=false;clearCellState(c2);});
+      drawAllGrids();
+    } else if(currentTool==='start'&&!isDrag){
+      ALGOS.forEach(function(k2){states[k2].startCell=states[k2].grid[row][col];states[k2].grid[row][col].wall=false;});
+      drawAllGrids();
+    } else if(currentTool==='end'&&!isDrag){
+      ALGOS.forEach(function(k2){states[k2].endCell=states[k2].grid[row][col];states[k2].grid[row][col].wall=false;});
+      drawAllGrids();
+    }
+    return;
+  }
+}
+
+function toggleRun() {
+  if(isRunning){isRunning=false;finishRun();return;}
+  runAllAlgos();
+}
+
+async function runAllAlgos() {
+  if(isRunning)return;
+  isRunning=true;
+  document.getElementById('rdot').style.display='block';
+  document.getElementById('runBtn').textContent='⏹  Stop';
+  document.getElementById('resultsPanel').classList.remove('open');
+  hideRanks();
+
+  try {
+    ALGOS.forEach(k=>clearState(states[k].grid));
+    drawAllGrids();
+
+    // Run all algorithms through Python backend and record times
+    var results = {};
+    for (var ai = 0; ai < ALGOS.length; ai++) {
+      var k = ALGOS[ai];
+      var st = states[k];
+      var t0 = performance.now();
+      results[k] = await runPythonAlgo(k, st.startCell, st.endCell, st.grid, st.ROWS, st.COLS);
+      results[k].time = results[k].time_ms || (performance.now()-t0);
+    }
+
+    // Animate all simultaneously
+    var visitDelay=Math.max(1,18-animSpeed*1.8);
+    var batch=Math.max(1,Math.floor(animSpeed*2.5));
+    var indices={};ALGOS.forEach(k=>indices[k]=0);
+
+    await new Promise(function(resolve){
+      function step(){
+        if(!isRunning){resolve();return;}
+        for(var j=0;j<batch;j++){
+          ALGOS.forEach(function(k){
+            var i=indices[k];
+            if(i>=results[k].visited.length)return;
+            var cell=results[k].visited[i];
+            var st=states[k];
+            if(cell!==st.startCell&&cell!==st.endCell){
+              cell.visited=true;cell.visitColor=hexRgba(COLORS[k],.28);
+              drawCell(st.ctx,cell,st.startCell,st.endCell,CELL);
+            }
+            indices[k]++;
+          });
+        }
+        var done=ALGOS.every(k=>indices[k]>=results[k].visited.length);
+        if(done)resolve();else setTimeout(step,visitDelay);
+      }
+      step();
+    });
+
+    if(!isRunning){return;}
+
+    // Animate paths
+    var pathDelay=Math.max(8,55-animSpeed*5);
+    var pathIdx={};ALGOS.forEach(k=>pathIdx[k]=0);
+    var pathDone={};ALGOS.forEach(k=>pathDone[k]=false);
+
+    await new Promise(function(resolve){
+      function step(){
+        if(!isRunning){resolve();return;}
+        var allDone=true;
+        ALGOS.forEach(function(k){
+          if(pathDone[k])return;
+          var i=pathIdx[k];
+          if(i>=results[k].path.length){pathDone[k]=true;return;}
+          allDone=false;
+          var cell=results[k].path[i];
+          var st=states[k];
+          if(cell!==st.startCell&&cell!==st.endCell){
+            cell.inPath=true;cell.pathColor=hexRgba(COLORS[k],.88);
+            drawCell(st.ctx,cell,st.startCell,st.endCell,CELL);
+          }
+          pathIdx[k]++;
+        });
+        if(allDone)resolve();else setTimeout(step,pathDelay);
+      }
+      step();
+    });
+
+    if(!isRunning){return;}
+
+    // Update stats bars
+    ALGOS.forEach(function(k){
+      var r=results[k];
+      var el=document.getElementById('stats'+k.toUpperCase());
+      if(el)el.textContent='v:'+r.visited.length+' p:'+(r.path.length||'✗')+' '+r.time.toFixed(1)+'ms';
+    });
+
+    // Show results
+    showResults(results);
+    setStatus('All 7 algorithms complete — see leaderboard and charts below');
+  } catch (err) {
+    console.error(err);
+    setStatus('Run failed. Please ensure Python backend is running.');
+  } finally {
+    finishRun();
+  }
+}
+
+function showResults(results) {
+  // Sort by: found path first, then by path cost, then by visited
+  var sorted = ALGOS.map(k=>({k,r:results[k]}));
+  sorted.sort(function(a,b){
+    if(a.r.path.length&&!b.r.path.length)return -1;
+    if(!a.r.path.length&&b.r.path.length)return 1;
+    if(a.r.pathCost!==b.r.pathCost)return a.r.pathCost-b.r.pathCost;
+    return a.r.visited.length-b.r.visited.length;
+  });
+
+  // Show rank badges
+  var medals=['🥇','🥈','🥉','4','5','6','7'];
+  var medalColors=['#facc15','#94a3b8','#cd7c40','var(--muted)','var(--muted)','var(--muted)','var(--muted)'];
+  sorted.forEach(function(item,idx){
+    var el=document.getElementById('rank'+item.k.toUpperCase());
+    if(!el)return;
+    el.textContent=medals[idx];
+    el.style.background=idx===0?'rgba(250,204,21,.15)':idx===1?'rgba(148,163,184,.1)':'rgba(0,0,0,.3)';
+    el.style.borderColor=idx<3?medalColors[idx]:'var(--border2)';
+    el.style.color=medalColors[idx];
+    el.style.opacity='1';
+  });
+
+  // Winner summary
+  var winner=sorted[0];
+  document.getElementById('summaryText').innerHTML=
+    '<div style="font-size:13px;color:'+COLORS[winner.k]+'">🏆 '+NAMES[winner.k]+'</div>' +
+    (winner.r.path.length?'<div style="font-size:10px;color:var(--muted);margin-top:4px">Cost: '+winner.r.pathCost.toFixed(2)+' | Visited: '+winner.r.visited.length+'</div>':'<div style="font-size:10px;color:var(--red)">No path found</div>');
+
+  // Leaderboard table
+  var tableHtml='<table class="results-table"><thead><tr><th>#</th><th>Algorithm</th><th>Visited</th><th>Path Len</th><th>Path Cost</th><th>Time</th><th>Found</th></tr></thead><tbody>';
+  sorted.forEach(function(item,idx){
+    var r=item.r;
+    var isWinner=idx===0;
+    tableHtml+='<tr class="'+(isWinner?'winner-row':'')+'">' +
+      '<td class="td-rank" style="color:'+medalColors[idx]+'">'+(idx<3?medals[idx]:idx+1)+'</td>' +
+      '<td class="td-algo" style="color:'+COLORS[item.k]+'">'+NAMES[item.k]+(isWinner&&r.path.length?'<span class="td-winner-badge">BEST</span>':'')+'</td>' +
+      '<td>'+r.visited.length+'</td>' +
+      '<td>'+(r.path.length||'–')+'</td>' +
+      '<td>'+(r.path.length?r.pathCost.toFixed(2):'–')+'</td>' +
+      '<td>'+r.time.toFixed(2)+' ms</td>' +
+      '<td style="color:'+(r.path.length?'var(--green)':'var(--red)')+'">'+(r.path.length?'✓ Yes':'✗ No')+'</td>' +
+      '</tr>';
+  });
+  tableHtml+='</tbody></table>';
+  document.getElementById('tabTableContent').innerHTML=tableHtml;
+
+  // Bar charts
+  buildBarCharts(sorted);
+
+  document.getElementById('resultsPanel').classList.add('open');
+}
+
+function buildBarCharts(sorted) {
+  var metrics = [
+    {id:'chartTime',title:'Time (ms)',key:'time',dec:2,lowerBetter:true},
+    {id:'chartVisited',title:'Visited Cells',key:'visited',dec:0,lowerBetter:true},
+    {id:'chartPath',title:'Path Length',key:'path',dec:0,lowerBetter:true},
+  ];
+
+  var html='<div class="charts-grid">';
+  metrics.forEach(function(m){
+    var vals=sorted.map(item=>m.key==='time'?item.r.time:m.key==='visited'?item.r.visited.length:item.r.path.length);
+    var maxVal=Math.max(...vals.filter(v=>v>0))||1;
+    html+='<div class="chart-box"><div class="chart-title">'+m.title+'</div>';
+    sorted.forEach(function(item,idx){
+      var val=m.key==='time'?item.r.time:m.key==='visited'?item.r.visited.length:item.r.path.length;
+      var pct=val>0?(val/maxVal*100):0;
+      var dispVal=val>0?(m.dec?val.toFixed(m.dec):val):'–';
+      html+='<div class="bar-row">' +
+        '<div class="bar-label" style="color:'+COLORS[item.k]+'">'+NAMES[item.k].replace(' Search','').replace('Bidirectional','Bidir')+'</div>' +
+        '<div class="bar-track"><div class="bar-fill" id="bar_'+m.id+'_'+idx+'" style="width:0;background:'+COLORS[item.k]+';"></div></div>' +
+        '<div class="bar-val">'+dispVal+'</div>' +
+        '</div>';
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+  document.getElementById('tabChartsContent').innerHTML=html;
+
+  // Animate bars after render
+  setTimeout(function(){
+    metrics.forEach(function(m){
+      sorted.forEach(function(item,idx){
+        var val=m.key==='time'?item.r.time:m.key==='visited'?item.r.visited.length:item.r.path.length;
+        var vals=sorted.map(x=>m.key==='time'?x.r.time:m.key==='visited'?x.r.visited.length:x.r.path.length);
+        var maxVal=Math.max(...vals.filter(v=>v>0))||1;
+        var pct=val>0?(val/maxVal*100):0;
+        var el=document.getElementById('bar_'+m.id+'_'+idx);
+        if(el)el.style.width=pct+'%';
+      });
+    });
+  },100);
+}
+
+function showTab(tab) {
+  document.getElementById('tabTableContent').style.display=tab==='table'?'block':'none';
+  document.getElementById('tabChartsContent').style.display=tab==='charts'?'block':'none';
+  document.getElementById('tabTable').className='rtab'+(tab==='table'?' active':'');
+  document.getElementById('tabCharts').className='rtab'+(tab==='charts'?' active':'');
+}
+
+function finishRun() {
+  isRunning=false;stopCar();
+  document.getElementById('rdot').style.display='none';
+  document.getElementById('runBtn').textContent='🏆 Run All Algos';
+}
+
+function initListeners() {
+  ALGOS.forEach(function(k){
+    var cv=states[k].canvas;
+    cv.addEventListener('mousedown',function(e){mouseDown=true;handlePtr(e.clientX,e.clientY,false);});
+    cv.addEventListener('mousemove',function(e){if(mouseDown)handlePtr(e.clientX,e.clientY,true);});
+    cv.addEventListener('mouseup',function(){mouseDown=false;});
+    cv.addEventListener('mouseleave',function(){mouseDown=false;});
+  });
+  window.addEventListener('resize',function(){
+    var area=document.getElementById('gridsArea');
+    var W4=Math.floor((area.offsetWidth-3)/4);
+    var H2=Math.floor((area.offsetHeight-1)/2);
+    ALGOS.forEach(function(k){
+      var st=states[k];
+      st.canvas.width=W4;st.canvas.height=H2;
+      CELL=Math.floor(Math.min(W4/COLS,H2/ROWS));if(CELL<3)CELL=3;
+      drawAll(st.ctx,st.grid,st.startCell,st.endCell,CELL);
+    });
+  });
+}
+
+window.addEventListener('load',initAll);
+</script>
+</body>
+</html>

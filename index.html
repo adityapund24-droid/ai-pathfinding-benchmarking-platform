@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>PathFinder AI — Home</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@700;800;900&display=swap" rel="stylesheet"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    :root{
+      --bg:#050810;--s1:#04080a;--s2:#111827;--s3:#1a2235;
+      --border:#1e3050;--border2:#243655;
+      --text:#e2e8f0;--muted:#4a6080;
+      --mono:'JetBrains Mono',monospace;--display:'Syne',sans-serif;
+      --bfs:#34d399;--dfs:#fb923c;--dls:#a78bfa;--iddfs:#00d4ff;
+      --bestfs:#f472b6;--astar:#facc15;--bidir:#38bdf8;
+      --green:#00ff88;--red:#ff4757;
+    }
+    body{background:var(--bg);color:var(--text);font-family:var(--mono);min-height:100vh;overflow-x:hidden}
+
+    /* ── BACKGROUND GRID ── */
+    body::before{
+      content:'';position:fixed;inset:0;
+      background-image:
+        linear-gradient(rgba(30,48,80,.18) 1px,transparent 1px),
+        linear-gradient(90deg,rgba(30,48,80,.18) 1px,transparent 1px);
+      background-size:40px 40px;
+      pointer-events:none;z-index:0;
+    }
+
+    /* ── HEADER ── */
+    header{
+      position:relative;z-index:10;
+      display:flex;align-items:center;gap:16px;
+      padding:20px 40px;
+      border-bottom:1px solid var(--border);
+      background:rgba(5,8,16,.8);backdrop-filter:blur(12px);
+    }
+    .logo{font-family:var(--display);font-size:22px;font-weight:900;letter-spacing:-0.5px}
+    .logo em{font-style:normal;color:var(--green)}
+    .badge{padding:3px 10px;border-radius:4px;font-size:10px;background:var(--s2);border:1px solid var(--border2);color:var(--muted)}
+    .badge.pu{background:rgba(52,211,153,.08);border-color:rgba(52,211,153,.3);color:var(--green)}
+    .page-links{display:flex;align-items:center;gap:8px}
+    .page-link{
+      padding:5px 10px;border-radius:7px;
+      border:1px solid var(--border2);background:var(--s2);
+      color:var(--muted);text-decoration:none;font-size:10px;font-weight:700;
+      letter-spacing:.3px;transition:color .2s,border-color .2s,transform .2s;
+    }
+    .page-link:hover{color:var(--text);border-color:var(--green);transform:translateY(-1px)}
+
+    @media (max-width: 900px){
+      header{flex-wrap:wrap}
+      .page-links{width:100%;padding-top:8px}
+    }
+
+    /* ── HERO ── */
+    .hero{
+      position:relative;z-index:1;
+      text-align:center;padding:80px 40px 60px;
+    }
+    .hero-eyebrow{
+      font-size:11px;letter-spacing:4px;text-transform:uppercase;
+      color:var(--green);margin-bottom:20px;
+      display:flex;align-items:center;justify-content:center;gap:10px;
+    }
+    .hero-eyebrow::before,.hero-eyebrow::after{content:'';height:1px;width:60px;background:var(--green);opacity:.4}
+    .hero-title{
+      font-family:var(--display);font-size:clamp(40px,6vw,80px);font-weight:900;
+      line-height:1.05;letter-spacing:-2px;margin-bottom:24px;
+    }
+    .hero-title span{
+      background:linear-gradient(135deg,var(--green) 0%,var(--bfs) 50%,var(--iddfs) 100%);
+      -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+    }
+    .hero-sub{
+      font-family:var(--mono);font-size:14px;color:var(--muted);max-width:560px;margin:0 auto 48px;line-height:1.7;
+    }
+
+    /* ── ALGO BADGES ── */
+    .algo-badges{
+      display:flex;flex-wrap:wrap;justify-content:center;gap:10px;margin-bottom:64px;
+    }
+    .abadge{
+      padding:6px 14px;border-radius:20px;font-size:11px;font-weight:700;letter-spacing:.5px;
+      border:1px solid;transition:transform .2s,box-shadow .2s;cursor:default;
+    }
+    .abadge:hover{transform:translateY(-2px)}
+
+    /* ── PAGE CARDS ── */
+    .pages-grid{
+      position:relative;z-index:1;
+      display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+      gap:24px;max-width:1200px;margin:0 auto;padding:0 40px 80px;
+    }
+    .page-card{
+      background:var(--s1);border:1px solid var(--border);border-radius:16px;
+      padding:32px;cursor:pointer;text-decoration:none;color:inherit;
+      transition:border-color .25s,transform .25s,box-shadow .25s;
+      display:block;position:relative;overflow:hidden;
+    }
+    .page-card::before{
+      content:'';position:absolute;inset:0;opacity:0;
+      transition:opacity .3s;
+    }
+    .page-card:hover{transform:translateY(-4px);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+    .page-card:hover::before{opacity:1}
+
+    .card-icon{font-size:36px;margin-bottom:16px}
+    .card-title{font-family:var(--display);font-size:22px;font-weight:800;margin-bottom:8px;letter-spacing:-0.5px}
+    .card-desc{font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:20px}
+    .card-tags{display:flex;flex-wrap:wrap;gap:6px}
+    .tag{padding:3px 9px;border-radius:4px;font-size:10px;font-weight:700;background:var(--s3);border:1px solid var(--border2);color:var(--muted)}
+    .card-arrow{
+      position:absolute;top:28px;right:28px;width:32px;height:32px;
+      border-radius:50%;background:var(--s2);border:1px solid var(--border2);
+      display:flex;align-items:center;justify-content:center;font-size:14px;
+      transition:transform .25s,background .25s;
+    }
+    .page-card:hover .card-arrow{transform:translate(3px,-3px);background:var(--s3)}
+
+    /* Card accents */
+    .card-solo{border-color:rgba(52,211,153,.25)}
+    .card-solo::before{background:radial-gradient(ellipse at top left,rgba(52,211,153,.07),transparent 60%)}
+    .card-solo .card-title{color:var(--bfs)}
+    .card-dual{border-color:rgba(251,146,60,.25)}
+    .card-dual::before{background:radial-gradient(ellipse at top left,rgba(251,146,60,.07),transparent 60%)}
+    .card-dual .card-title{color:var(--dfs)}
+    .card-all{border-color:rgba(0,212,255,.25)}
+    .card-all::before{background:radial-gradient(ellipse at top left,rgba(0,212,255,.07),transparent 60%)}
+    .card-all .card-title{color:var(--iddfs)}
+
+    /* ── STATS ROW ── */
+    .stats-row{
+      position:relative;z-index:1;
+      display:flex;justify-content:center;gap:48px;flex-wrap:wrap;
+      padding:40px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);
+      margin-bottom:64px;background:var(--s1);
+    }
+    .stat-item{text-align:center}
+    .stat-num{font-family:var(--display);font-size:36px;font-weight:900;color:var(--green)}
+    .stat-lbl{font-size:11px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-top:4px}
+
+    /* ── FOOTER ── */
+    footer{
+      position:relative;z-index:1;text-align:center;padding:24px;
+      border-top:1px solid var(--border);font-size:11px;color:var(--muted);
+    }
+
+    /* ── ANIMATED DOTS ── */
+    .hero-dots{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+    .dot{position:absolute;width:3px;height:3px;border-radius:50%;animation:floatUp 8s linear infinite;opacity:0}
+    @keyframes floatUp{
+      0%{transform:translateY(100vh);opacity:0}
+      10%{opacity:.6}
+      90%{opacity:.3}
+      100%{transform:translateY(-100px);opacity:0}
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo"><em>Path</em>Finder AI</div>
+  <div class="page-links">
+    <a href="solo.html" class="page-link">Single</a>
+    <a href="dual.html" class="page-link">Dual</a>
+    <a href="all.html" class="page-link">All</a>
+  </div>
+</header>
+
+<div class="hero">
+  <div class="hero-dots" id="heroDots"></div>
+  <div class="hero-eyebrow">AI Search Algorithm Visualizer</div>
+  <h1 class="hero-title">
+    Autonomous Car Simulation<br><span>using AI Algorithms </span>
+  </h1>
+  <p class="hero-sub">
+    Explore, compare, and understand how search algorithms navigate through mazes —
+    from classic BFS and DFS to intelligent heuristic-based A★ and Bidirectional Search.
+  </p>
+  <div class="algo-badges">
+    <div class="abadge" style="color:var(--bfs);border-color:rgba(52,211,153,.3);background:rgba(52,211,153,.07)">BFS</div>
+    <div class="abadge" style="color:var(--dfs);border-color:rgba(251,146,60,.3);background:rgba(251,146,60,.07)">DFS</div>
+    <div class="abadge" style="color:var(--dls);border-color:rgba(167,139,250,.3);background:rgba(167,139,250,.07)">DLS</div>
+    <div class="abadge" style="color:var(--iddfs);border-color:rgba(0,212,255,.3);background:rgba(0,212,255,.07)">IDDFS</div>
+    <div class="abadge" style="color:var(--bestfs);border-color:rgba(244,114,182,.3);background:rgba(244,114,182,.07)">Best-First</div>
+    <div class="abadge" style="color:var(--astar);border-color:rgba(250,204,21,.3);background:rgba(250,204,21,.07)">A★ Search</div>
+    <div class="abadge" style="color:var(--bidir);border-color:rgba(56,189,248,.3);background:rgba(56,189,248,.07)">Bidirectional</div>
+  </div>
+</div>
+
+<div class="stats-row">
+  <div class="stat-item"><div class="stat-num">7</div><div class="stat-lbl">Algorithms</div></div>
+  <div class="stat-item"><div class="stat-num">3</div><div class="stat-lbl">View Modes</div></div>
+  <div class="stat-item"><div class="stat-num">6</div><div class="stat-lbl">Maze Types</div></div>
+  <div class="stat-item"><div class="stat-num">∞</div><div class="stat-lbl">Possibilities</div></div>
+</div>
+
+<div class="pages-grid">
+
+  <a href="solo.html" class="page-card card-solo">
+    <div class="card-arrow">→</div>
+    <div class="card-icon">🔍</div>
+    <div class="card-title">Single Algorithm</div>
+    <div class="card-desc">
+      Run and study one algorithm at a time. Watch the search expand step-by-step, with live search tree data, path cost tracking, and an animated car along the found route.
+    </div>
+    <div class="card-tags">
+      <span class="tag">BFS</span>
+      <span class="tag">DFS</span>
+      <span class="tag">DLS</span>
+      <span class="tag">IDDFS</span>
+      <span class="tag">Live Tree</span>
+      <span class="tag">Car Animation</span>
+    </div>
+  </a>
+
+  <a href="dual.html" class="page-card card-dual">
+    <div class="card-arrow">→</div>
+    <div class="card-icon">⚔️</div>
+    <div class="card-title">Dual Comparison</div>
+    <div class="card-desc">
+      Run any two algorithms side-by-side on the same grid simultaneously. Watch them race in real time and compare visited cells, path length, cost, and execution time head-to-head.
+    </div>
+    <div class="card-tags">
+      <span class="tag">Side-by-Side</span>
+      <span class="tag">Simultaneous</span>
+      <span class="tag">Head-to-Head</span>
+      <span class="tag">Stats Panel</span>
+    </div>
+  </a>
+
+  <a href="all.html" class="page-card card-all">
+    <div class="card-arrow">→</div>
+    <div class="card-icon">🏆</div>
+    <div class="card-title">All Algorithms</div>
+    <div class="card-desc">
+      Run all 7 algorithms at once on the same maze. Includes Best-First Search, A★, and Bidirectional Search. Get a full comparison table and bar charts for time, visited cells, and path length.
+    </div>
+    <div class="card-tags">
+      <span class="tag">All 7 Algos</span>
+      <span class="tag">A★ Search</span>
+      <span class="tag">Best-First</span>
+      <span class="tag">Bidirectional</span>
+      <span class="tag">Bar Charts</span>
+      <span class="tag">Leaderboard</span>
+    </div>
+  </a>
+
+</div>
+
+
+
+<script>
+// Animate floating dots
+var colors = ['#34d399','#fb923c','#a78bfa','#00d4ff','#f472b6','#facc15','#38bdf8'];
+var container = document.getElementById('heroDots');
+for(var i=0;i<30;i++){
+  var d=document.createElement('div');
+  d.className='dot';
+  d.style.left=Math.random()*100+'%';
+  d.style.animationDelay=Math.random()*8+'s';
+  d.style.animationDuration=(6+Math.random()*6)+'s';
+  d.style.background=colors[Math.floor(Math.random()*colors.length)];
+  container.appendChild(d);
+}
+</script>
+</body>
+</html>
