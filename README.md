@@ -100,3 +100,5 @@ http://127.0.0.1:5000/api/pathfind
 - The backend includes CORS headers so the frontend can call it locally.
 - Keep `server.py` running while you use the visualizer.
 - If you change algorithm code, restart the backend to load the updates.
+
+This project help to analyze the ai algorithms
