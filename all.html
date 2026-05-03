@@ -428,7 +428,7 @@ async function runAllAlgos() {
     ALGOS.forEach(k=>clearState(states[k].grid));
     drawAllGrids();
 
-    // Run all algorithms through Python backend and record times
+      // Run all algorithms through Python backend and record comparison metrics
     var results = {};
     for (var ai = 0; ai < ALGOS.length; ai++) {
       var k = ALGOS[ai];
